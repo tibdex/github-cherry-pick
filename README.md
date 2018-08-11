@@ -18,7 +18,7 @@ githubCherryPick({
   // See https://git-scm.com/docs/git-cherry-pick for more details.
   commits: [
     "8b10a7808f06970232dc1b45a77b47d63641c4f1",
-    "f393441512c54435819d1cdd8921c0d566911af3"
+    "f393441512c54435819d1cdd8921c0d566911af3",
   ],
   // The name of the branch/reference on top of which the commits will be cherry-picked.
   head: "awesome-feature",
@@ -28,7 +28,7 @@ githubCherryPick({
   // The login of the repository owner.
   owner,
   // The name of the repository.
-  repo
+  repo,
 }).then(newHeadSha => {
   // Do something.
 });

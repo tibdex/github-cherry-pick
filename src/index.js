@@ -8,8 +8,8 @@ import {
   type Sha,
   fetchReferenceSha,
   updateReference,
-  withTemporaryReference
-} from "@tibdex/shared-github-internals/src/git";
+  withTemporaryReference,
+} from "shared-github-internals/lib/git";
 import createDebug from "debug";
 
 import { name as packageName } from "../package";
@@ -18,15 +18,15 @@ const merge = async ({ base, commit, octokit, owner, repo }) => {
   const {
     data: {
       commit: {
-        tree: { sha }
-      }
-    }
+        tree: { sha },
+      },
+    },
   } = await octokit.repos.merge({
     base,
     commit_message: `Merge ${commit} into ${base}`,
     head: commit,
     owner,
-    repo
+    repo,
   });
   return sha;
 };
@@ -37,17 +37,17 @@ const createCommitWithDifferentTree = async ({
   owner,
   parent,
   repo,
-  tree
+  tree,
 }) => {
   const {
-    data: { author, committer, message }
+    data: { author, committer, message },
   } = await octokit.gitdata.getCommit({
     commit_sha: commit,
     owner,
-    repo
+    repo,
   });
   const {
-    data: { sha }
+    data: { sha },
   } = await octokit.gitdata.createCommit({
     author,
     committer,
@@ -57,7 +57,7 @@ const createCommitWithDifferentTree = async ({
     repo,
     // No PGP signature support for now.
     // See https://developer.github.com/v3/git/commits/#create-a-commit.
-    tree
+    tree,
   });
   return sha;
 };
@@ -67,7 +67,7 @@ const cherryPickCommit = async ({
   head: { ref, sha },
   octokit,
   owner,
-  repo
+  repo,
 }) => {
   const tree = await merge({ base: ref, commit, octokit, owner, repo });
   const createdCommit = await createCommitWithDifferentTree({
@@ -76,7 +76,7 @@ const cherryPickCommit = async ({
     owner,
     parent: sha,
     repo,
-    tree
+    tree,
   });
   await updateReference({
     // Overwrite the merge commit and its parent on the branch by a single commit.
@@ -86,7 +86,7 @@ const cherryPickCommit = async ({
     owner,
     ref,
     repo,
-    sha: createdCommit
+    sha: createdCommit,
   });
   return createdCommit;
 };
@@ -98,7 +98,7 @@ const cherryPickCommitsOnReference = ({
   octokit,
   owner,
   ref,
-  repo
+  repo,
 }) =>
   commits.reduce(async (previousCherryPick, commit) => {
     const sha = await previousCherryPick;
@@ -108,7 +108,7 @@ const cherryPickCommitsOnReference = ({
       head: { ref, sha },
       octokit,
       owner,
-      repo
+      repo,
     });
   }, Promise.resolve(head));
 
@@ -120,14 +120,14 @@ const cherryPickCommits = async ({
   head,
   octokit,
   owner,
-  repo
+  repo,
 }: {
   _intercept?: ({ headInitialSha: Sha }) => Promise<void>,
   commits: Array<Sha>,
   head: Reference,
   octokit: Github,
   owner: RepoOwner,
-  repo: RepoName
+  repo: RepoName,
 }): Promise<Sha> => {
   const debug = createDebug(packageName);
   debug("starting", { commits, head, owner, repo });
@@ -135,7 +135,7 @@ const cherryPickCommits = async ({
     octokit,
     owner,
     ref: head,
-    repo
+    repo,
   });
   await _intercept({ headInitialSha });
   return withTemporaryReference({
@@ -148,7 +148,7 @@ const cherryPickCommits = async ({
         octokit,
         owner,
         ref: temporaryRef,
-        repo
+        repo,
       });
       debug("updating reference with new SHA", newSha);
       await updateReference({
@@ -158,7 +158,7 @@ const cherryPickCommits = async ({
         owner,
         ref: head,
         repo,
-        sha: newSha
+        sha: newSha,
       });
       debug("reference updated");
       return newSha;
@@ -167,7 +167,7 @@ const cherryPickCommits = async ({
     owner,
     ref: `cherry-pick-${head}`,
     repo,
-    sha: headInitialSha
+    sha: headInitialSha,
   });
 };
 

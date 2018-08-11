@@ -6,10 +6,9 @@ module.exports = {
       branches: 100,
       functions: 100,
       lines: 100,
-      statements: 100
-    }
+      statements: 100,
+    },
   },
   reporters: ["default", ["jest-junit", { output: "./reports/junit.xml" }]],
   testEnvironment: "node",
-  transformIgnorePatterns: ["node_modules/(?!(@tibdex)/)"]
 };

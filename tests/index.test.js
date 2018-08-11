@@ -2,17 +2,17 @@
 
 import {
   fetchReferenceSha,
-  updateReference
-} from "@tibdex/shared-github-internals/src/git";
-import { createTestContext } from "@tibdex/shared-github-internals/tests/context";
+  updateReference,
+} from "shared-github-internals/lib/git";
+import { createTestContext } from "shared-github-internals/lib/tests/context";
 import {
   createCommitFromLinesAndMessage,
   createReferences,
   fetchReferenceCommits,
-  fetchReferenceCommitsFromSha
-} from "@tibdex/shared-github-internals/tests/git";
+  fetchReferenceCommitsFromSha,
+} from "shared-github-internals/lib/tests/git";
 
-import cherryPick from "../src";
+import cherryPick from "../lib";
 
 let octokit, owner, repo;
 
@@ -26,7 +26,7 @@ describe("nominal behavior", () => {
     "feature 1st",
     "feature 2nd",
     "master 1st",
-    "master 2nd"
+    "master 2nd",
   ];
 
   const [
@@ -34,36 +34,36 @@ describe("nominal behavior", () => {
     feature1stCommit,
     feature2ndCommit,
     master1stCommit,
-    master2ndCommit
+    master2ndCommit,
   ] = [
     {
       lines: [initial, initial, initial, initial],
-      message: initial
+      message: initial,
     },
     {
       lines: [feature1st, initial, initial, initial],
-      message: feature1st
+      message: feature1st,
     },
     {
       lines: [feature1st, feature2nd, initial, initial],
-      message: feature2nd
+      message: feature2nd,
     },
     {
       lines: [initial, initial, master1st, initial],
-      message: master1st
+      message: master1st,
     },
     {
       lines: [initial, initial, master1st, master2nd],
-      message: master2nd
-    }
+      message: master2nd,
+    },
   ];
 
   const state = {
     initialCommit,
     refsCommits: {
       feature: [feature1stCommit, feature2ndCommit],
-      master: [master1stCommit, master2ndCommit]
-    }
+      master: [master1stCommit, master2ndCommit],
+    },
   };
 
   let deleteReferences, refsDetails, sha;
@@ -73,7 +73,7 @@ describe("nominal behavior", () => {
       octokit,
       owner,
       repo,
-      state
+      state,
     }));
     sha = await cherryPick({
       // Cherry-pick all commits on master except the initial one.
@@ -81,7 +81,7 @@ describe("nominal behavior", () => {
       head: refsDetails.feature.ref,
       octokit,
       owner,
-      repo
+      repo,
     });
   }, 20000);
 
@@ -92,7 +92,7 @@ describe("nominal behavior", () => {
       octokit,
       owner,
       ref: refsDetails.feature.ref,
-      repo
+      repo,
     });
     expect(actualRefSha).toBe(sha);
   });
@@ -102,7 +102,7 @@ describe("nominal behavior", () => {
       octokit,
       owner,
       repo,
-      sha
+      sha,
     });
     expect(actualCommits).toEqual([
       initialCommit,
@@ -110,12 +110,12 @@ describe("nominal behavior", () => {
       feature2ndCommit,
       {
         lines: [feature1st, feature2nd, master1st, initial],
-        message: master1st
+        message: master1st,
       },
       {
         lines: [feature1st, feature2nd, master1st, master2nd],
-        message: master2nd
-      }
+        message: master2nd,
+      },
     ]);
   });
 });
@@ -126,18 +126,18 @@ describe("atomicity", () => {
       "initial",
       "feature 1st",
       "master 1st",
-      "master 2nd"
+      "master 2nd",
     ];
 
     const [initialCommit, feature1stCommit] = [
       {
         lines: [initial, initial],
-        message: initial
+        message: initial,
       },
       {
         lines: [feature1st, initial],
-        message: feature1st
-      }
+        message: feature1st,
+      },
     ];
 
     let deleteReferences, refsDetails;
@@ -154,15 +154,15 @@ describe("atomicity", () => {
             master: [
               {
                 lines: [initial, master1st],
-                message: master1st
+                message: master1st,
               },
               {
                 lines: [master2nd, master1st],
-                message: master2nd
-              }
-            ]
-          }
-        }
+                message: master2nd,
+              },
+            ],
+          },
+        },
       }));
     }, 15000);
 
@@ -178,7 +178,7 @@ describe("atomicity", () => {
             head: refsDetails.feature.ref,
             octokit,
             owner,
-            repo
+            repo,
           });
           throw new Error("The cherry-pick should have failed");
         } catch (error) {
@@ -187,7 +187,7 @@ describe("atomicity", () => {
             octokit,
             owner,
             ref: refsDetails.feature.ref,
-            repo
+            repo,
           });
           expect(featureCommits).toEqual([initialCommit, feature1stCommit]);
         }
@@ -201,22 +201,22 @@ describe("atomicity", () => {
       "initial",
       "feature 1st",
       "feature 2nd",
-      "master 1st"
+      "master 1st",
     ];
 
     const [initialCommit, feature1stCommit, feature2ndCommit] = [
       {
         lines: [initial, initial],
-        message: initial
+        message: initial,
       },
       {
         lines: [feature1st, initial],
-        message: feature1st
+        message: feature1st,
       },
       {
         lines: [feature1st, feature2nd],
-        message: feature2nd
-      }
+        message: feature2nd,
+      },
     ];
 
     let deleteReferences, refsDetails;
@@ -233,11 +233,11 @@ describe("atomicity", () => {
             master: [
               {
                 lines: [initial, master1st],
-                message: master1st
-              }
-            ]
-          }
-        }
+                message: master1st,
+              },
+            ],
+          },
+        },
       }));
     }, 15000);
 
@@ -254,7 +254,7 @@ describe("atomicity", () => {
                 octokit,
                 owner,
                 parent: headInitialSha,
-                repo
+                repo,
               });
               await updateReference({
                 force: false,
@@ -262,7 +262,7 @@ describe("atomicity", () => {
                 owner,
                 ref: refsDetails.feature.ref,
                 repo,
-                sha: newCommit
+                sha: newCommit,
               });
             },
             // Cherry-pick all commits on master except the initial one.
@@ -270,7 +270,7 @@ describe("atomicity", () => {
             head: refsDetails.feature.ref,
             octokit,
             owner,
-            repo
+            repo,
           });
           throw new Error("The cherry-pick should have failed");
         } catch (error) {
@@ -279,12 +279,12 @@ describe("atomicity", () => {
             octokit,
             owner,
             ref: refsDetails.feature.ref,
-            repo
+            repo,
           });
           expect(featureCommits).toEqual([
             initialCommit,
             feature1stCommit,
-            feature2ndCommit
+            feature2ndCommit,
           ]);
         }
       },
