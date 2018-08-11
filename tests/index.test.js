@@ -12,7 +12,7 @@ import {
   fetchReferenceCommitsFromSha,
 } from "shared-github-internals/lib/tests/git";
 
-import cherryPick from "../lib";
+import cherryPick from "../src";
 
 let octokit, owner, repo;
 
