@@ -10,9 +10,9 @@ See also [`github-rebase`](https://www.npmjs.com/package/github-rebase) if you w
 # Usage
 
 ```javascript
-const githubCherryPick = require("github-cherry-pick");
+const cherryPickCommits = require("github-cherry-pick");
 
-githubCherryPick({
+cherryPickCommits({
   // The SHA list of the commits to cherry-pick.
   // The commits will be cherry-picked in the order they appear in the array.
   // See https://git-scm.com/docs/git-cherry-pick for more details.
@@ -23,7 +23,6 @@ githubCherryPick({
   // The name of the branch/reference on top of which the commits will be cherry-picked.
   head: "awesome-feature",
   // An already authenticated instance of https://www.npmjs.com/package/@octokit/rest.
-  // Its version should preferably be the same than the one in github-cherry-pick's package.json.
   octokit,
   // The login of the repository owner.
   owner,
