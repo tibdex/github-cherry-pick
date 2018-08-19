@@ -41,19 +41,19 @@ describe("nominal behavior", () => {
       message: initial,
     },
     {
-      lines: [feature1st, initial, initial, initial],
+      lines: [initial, initial, feature1st, initial],
       message: feature1st,
     },
     {
-      lines: [feature1st, feature2nd, initial, initial],
+      lines: [initial, initial, feature1st, feature2nd],
       message: feature2nd,
     },
     {
-      lines: [initial, initial, master1st, initial],
+      lines: [master1st, initial, initial, initial],
       message: master1st,
     },
     {
-      lines: [initial, initial, master1st, master2nd],
+      lines: [master1st, master2nd, initial, initial],
       message: master2nd,
     },
   ];
@@ -76,9 +76,9 @@ describe("nominal behavior", () => {
       state,
     }));
     sha = await cherryPick({
-      // Cherry-pick all commits on master except the initial one.
-      commits: refsDetails.master.shas.slice(1),
-      head: refsDetails.feature.ref,
+      // Cherry-pick all feature commits except the initial one.
+      commits: refsDetails.feature.shas.slice(1),
+      head: refsDetails.master.ref,
       octokit,
       owner,
       repo,
@@ -87,17 +87,17 @@ describe("nominal behavior", () => {
 
   afterAll(() => deleteReferences());
 
-  test("returned sha is the actual feature ref sha", async () => {
+  test("returned sha is the actual master ref sha", async () => {
     const actualRefSha = await fetchReferenceSha({
       octokit,
       owner,
-      ref: refsDetails.feature.ref,
+      ref: refsDetails.master.ref,
       repo,
     });
     expect(actualRefSha).toBe(sha);
   });
 
-  test("commits on the feature ref are the expected ones", async () => {
+  test("commits on master are the expected ones", async () => {
     const actualCommits = await fetchReferenceCommitsFromSha({
       octokit,
       owner,
@@ -106,15 +106,15 @@ describe("nominal behavior", () => {
     });
     expect(actualCommits).toEqual([
       initialCommit,
-      feature1stCommit,
-      feature2ndCommit,
+      master1stCommit,
+      master2ndCommit,
       {
-        lines: [feature1st, feature2nd, master1st, initial],
-        message: master1st,
+        lines: [master1st, master2nd, feature1st, initial],
+        message: feature1st,
       },
       {
-        lines: [feature1st, feature2nd, master1st, master2nd],
-        message: master2nd,
+        lines: [master1st, master2nd, feature1st, feature2nd],
+        message: feature2nd,
       },
     ]);
   });
@@ -122,20 +122,20 @@ describe("nominal behavior", () => {
 
 describe("atomicity", () => {
   describe("one of the commits cannot be cherry-picked", () => {
-    const [initial, feature1st, master1st, master2nd] = [
+    const [initial, feature1st, feature2nd, master1st] = [
       "initial",
       "feature 1st",
+      "feature 2nd",
       "master 1st",
-      "master 2nd",
     ];
 
-    const [initialCommit, feature1stCommit] = [
+    const [initialCommit, master1stCommit] = [
       {
         lines: [initial, initial],
         message: initial,
       },
       {
-        lines: [feature1st, initial],
+        lines: [master1st, initial],
         message: feature1st,
       },
     ];
@@ -150,17 +150,17 @@ describe("atomicity", () => {
         state: {
           initialCommit,
           refsCommits: {
-            feature: [feature1stCommit],
-            master: [
+            feature: [
               {
-                lines: [initial, master1st],
-                message: master1st,
+                lines: [initial, feature1st],
+                message: feature1st,
               },
               {
-                lines: [master2nd, master1st],
-                message: master2nd,
+                lines: [feature2nd, feature1st],
+                message: feature2nd,
               },
             ],
+            master: [master1stCommit],
           },
         },
       }));
@@ -173,9 +173,9 @@ describe("atomicity", () => {
       async () => {
         try {
           await cherryPick({
-            // Cherry-pick all commits on master except the initial one.
-            commits: refsDetails.master.shas.slice(1),
-            head: refsDetails.feature.ref,
+            // Cherry-pick all feature commits except the initial one.
+            commits: refsDetails.feature.shas.slice(1),
+            head: refsDetails.master.ref,
             octokit,
             owner,
             repo,
@@ -183,13 +183,13 @@ describe("atomicity", () => {
           throw new Error("The cherry-pick should have failed");
         } catch (error) {
           expect(error.message).toMatch(/Merge conflict/u);
-          const featureCommits = await fetchReferenceCommits({
+          const masterCommits = await fetchReferenceCommits({
             octokit,
             owner,
-            ref: refsDetails.feature.ref,
+            ref: refsDetails.master.ref,
             repo,
           });
-          expect(featureCommits).toEqual([initialCommit, feature1stCommit]);
+          expect(masterCommits).toEqual([initialCommit, master1stCommit]);
         }
       },
       15000
@@ -197,25 +197,25 @@ describe("atomicity", () => {
   });
 
   describe("the head reference changed", () => {
-    const [initial, feature1st, feature2nd, master1st] = [
+    const [initial, feature1st, master1st, master2nd] = [
       "initial",
       "feature 1st",
-      "feature 2nd",
       "master 1st",
+      "master 2nd",
     ];
 
-    const [initialCommit, feature1stCommit, feature2ndCommit] = [
+    const [initialCommit, master1stCommit, master2ndCommit] = [
       {
         lines: [initial, initial],
         message: initial,
       },
       {
-        lines: [feature1st, initial],
-        message: feature1st,
+        lines: [master1st, initial],
+        message: master1st,
       },
       {
-        lines: [feature1st, feature2nd],
-        message: feature2nd,
+        lines: [master1st, master2nd],
+        message: master2nd,
       },
     ];
 
@@ -229,13 +229,13 @@ describe("atomicity", () => {
         state: {
           initialCommit,
           refsCommits: {
-            feature: [feature1stCommit],
-            master: [
+            feature: [
               {
-                lines: [initial, master1st],
-                message: master1st,
+                lines: [initial, feature1st],
+                message: feature1st,
               },
             ],
+            master: [master1stCommit],
           },
         },
       }));
@@ -250,7 +250,7 @@ describe("atomicity", () => {
           await cherryPick({
             _intercept: async ({ headInitialSha }) => {
               const newCommit = await createCommitFromLinesAndMessage({
-                commit: feature2ndCommit,
+                commit: master2ndCommit,
                 octokit,
                 owner,
                 parent: headInitialSha,
@@ -260,14 +260,14 @@ describe("atomicity", () => {
                 force: false,
                 octokit,
                 owner,
-                ref: refsDetails.feature.ref,
+                ref: refsDetails.master.ref,
                 repo,
                 sha: newCommit,
               });
             },
-            // Cherry-pick all commits on master except the initial one.
-            commits: refsDetails.master.shas.slice(1),
-            head: refsDetails.feature.ref,
+            // Cherry-pick all feature commits except the initial one.
+            commits: refsDetails.feature.shas.slice(1),
+            head: refsDetails.master.ref,
             octokit,
             owner,
             repo,
@@ -275,16 +275,16 @@ describe("atomicity", () => {
           throw new Error("The cherry-pick should have failed");
         } catch (error) {
           expect(error.message).toMatch(/Update is not a fast forward/u);
-          const featureCommits = await fetchReferenceCommits({
+          const masterCommits = await fetchReferenceCommits({
             octokit,
             owner,
-            ref: refsDetails.feature.ref,
+            ref: refsDetails.master.ref,
             repo,
           });
-          expect(featureCommits).toEqual([
+          expect(masterCommits).toEqual([
             initialCommit,
-            feature1stCommit,
-            feature2ndCommit,
+            master1stCommit,
+            master2ndCommit,
           ]);
         }
       },
