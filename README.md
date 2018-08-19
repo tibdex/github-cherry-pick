@@ -35,6 +35,24 @@ cherryPickCommits({
 
 `github-cherry-pick` can run on Node.js and in recent browsers.
 
+### Disclaimer
+
+`github-cherry-pick` currently only supports a subset of what `git cherry-pick` offers.
+
+For instance, starting with this Git graph:
+
+```
+* 9232f06 (HEAD -> master) D
+| * e926f9d (feature) C
+| * d216f82 B
+|/
+* 24dfa35 A
+```
+
+Calling `github-cherry-pick` with `['e926f9d']` to only cherry-pick the last commit of the `feature` branch on `master` would also actually apply the changes brought by `d216f82` to `master`.
+
+If you have any suggestions for how to support all the situations handled by `git cherry-pick` by only using endpoints of the GitHub REST API, please create an issue or pull request.
+
 ## Troubleshooting
 
 `github-cherry-pick` uses [`debug`](https://www.npmjs.com/package/debug) to log helpful information at different steps of the cherry-picking process. To enable these logs, set the `DEBUG` environment variable to `github-cherry-pick`.
