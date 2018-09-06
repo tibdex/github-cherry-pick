@@ -21,40 +21,29 @@ beforeAll(() => {
 });
 
 describe("nominal behavior", () => {
-  const [initial, feature1st, feature2nd, master1st, master2nd] = [
+  const [initial, feature1st, feature2nd, master1st] = [
     "initial",
     "feature 1st",
     "feature 2nd",
     "master 1st",
-    "master 2nd",
   ];
 
-  const [
-    initialCommit,
-    feature1stCommit,
-    feature2ndCommit,
-    master1stCommit,
-    master2ndCommit,
-  ] = [
+  const [initialCommit, feature1stCommit, feature2ndCommit, master1stCommit] = [
     {
-      lines: [initial, initial, initial, initial],
+      lines: [initial, initial, initial],
       message: initial,
     },
     {
-      lines: [initial, initial, feature1st, initial],
+      lines: [initial, feature1st, initial],
       message: feature1st,
     },
     {
-      lines: [initial, initial, feature1st, feature2nd],
+      lines: [initial, feature1st, feature2nd],
       message: feature2nd,
     },
     {
-      lines: [master1st, initial, initial, initial],
+      lines: [master1st, initial, initial],
       message: master1st,
-    },
-    {
-      lines: [master1st, master2nd, initial, initial],
-      message: master2nd,
     },
   ];
 
@@ -62,7 +51,7 @@ describe("nominal behavior", () => {
     initialCommit,
     refsCommits: {
       feature: [feature1stCommit, feature2ndCommit],
-      master: [master1stCommit, master2ndCommit],
+      master: [master1stCommit],
     },
   };
 
@@ -107,13 +96,12 @@ describe("nominal behavior", () => {
     expect(actualCommits).toEqual([
       initialCommit,
       master1stCommit,
-      master2ndCommit,
       {
-        lines: [master1st, master2nd, feature1st, initial],
+        lines: [master1st, feature1st, initial],
         message: feature1st,
       },
       {
-        lines: [master1st, master2nd, feature1st, feature2nd],
+        lines: [master1st, feature1st, feature2nd],
         message: feature2nd,
       },
     ]);
@@ -287,6 +275,174 @@ describe("atomicity", () => {
             master2ndCommit,
           ]);
         }
+      },
+      15000
+    );
+  });
+});
+
+describe("what doesn't work but should", () => {
+  describe("cherry-picking commits editing the same line", () => {
+    const [initial, feature1st, feature2nd, master1st] = [
+      "initial",
+      "feature 1st",
+      "feature 2nd",
+      "master 1st",
+    ];
+
+    const [
+      initialCommit,
+      feature1stCommit,
+      feature2ndCommit,
+      master1stCommit,
+    ] = [
+      {
+        lines: [initial, initial],
+        message: initial,
+      },
+      {
+        lines: [initial, feature1st],
+        message: feature1st,
+      },
+      {
+        lines: [initial, feature2nd],
+        message: feature2nd,
+      },
+      {
+        lines: [master1st, initial],
+        message: master1st,
+      },
+    ];
+
+    const state = {
+      initialCommit,
+      refsCommits: {
+        feature: [feature1stCommit, feature2ndCommit],
+        master: [master1stCommit],
+      },
+    };
+
+    let deleteReferences, refsDetails;
+
+    beforeAll(async () => {
+      ({ deleteReferences, refsDetails } = await createReferences({
+        octokit,
+        owner,
+        repo,
+        state,
+      }));
+    }, 20000);
+
+    afterAll(() => deleteReferences());
+
+    test(
+      "cherry-picking faces a merge conflict",
+      async () => {
+        try {
+          await cherryPick({
+            // Cherry-pick all feature commits except the initial one.
+            commits: refsDetails.feature.shas.slice(1),
+            head: refsDetails.master.ref,
+            octokit,
+            owner,
+            repo,
+          });
+          throw new Error("The cherry-pick should have failed");
+        } catch (error) {
+          // Using `git cherry-pick` through a CLI would have worked fine.
+          expect(error.message).toMatch(/Merge conflict/u);
+          const masterCommits = await fetchReferenceCommits({
+            octokit,
+            owner,
+            ref: refsDetails.master.ref,
+            repo,
+          });
+          expect(masterCommits).toEqual([initialCommit, master1stCommit]);
+        }
+      },
+      15000
+    );
+  });
+
+  describe("cherry-picking a commit but not all its parents up to the most recent common ancestor", () => {
+    const [initial, feature1st, feature2nd, master1st] = [
+      "initial",
+      "feature 1st",
+      "feature 2nd",
+      "master 1st",
+    ];
+
+    const [
+      initialCommit,
+      feature1stCommit,
+      feature2ndCommit,
+      master1stCommit,
+    ] = [
+      {
+        lines: [initial, initial, initial],
+        message: initial,
+      },
+      {
+        lines: [initial, feature1st, initial],
+        message: feature1st,
+      },
+      {
+        lines: [initial, feature1st, feature2nd],
+        message: feature2nd,
+      },
+      {
+        lines: [master1st, initial, initial],
+        message: master1st,
+      },
+    ];
+
+    const state = {
+      initialCommit,
+      refsCommits: {
+        feature: [feature1stCommit, feature2ndCommit],
+        master: [master1stCommit],
+      },
+    };
+
+    let deleteReferences, refsDetails;
+
+    beforeAll(async () => {
+      ({ deleteReferences, refsDetails } = await createReferences({
+        octokit,
+        owner,
+        repo,
+        state,
+      }));
+    }, 20000);
+
+    afterAll(() => deleteReferences());
+
+    test(
+      "cherry-picked commit actually contains the changes of its parent",
+      async () => {
+        await cherryPick({
+          // Cherry-pick only the last feature commit.
+          commits: refsDetails.feature.shas.slice(-1),
+          head: refsDetails.master.ref,
+          octokit,
+          owner,
+          repo,
+        });
+        const masterCommits = await fetchReferenceCommits({
+          octokit,
+          owner,
+          ref: refsDetails.master.ref,
+          repo,
+        });
+        expect(masterCommits).toEqual([
+          initialCommit,
+          master1stCommit,
+          {
+            // Using `git cherry-pick` through a CLI, the lines would have been: `[master1st, initial, feature2nd]`
+            lines: [master1st, feature1st, feature2nd],
+            message: feature2nd,
+          },
+        ]);
       },
       15000
     );

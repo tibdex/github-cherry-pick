@@ -51,6 +51,7 @@ For instance, starting with this Git graph:
 
 Calling `github-cherry-pick` with `['e926f9d']` to only cherry-pick the last commit of the `feature` branch on `master` would also actually apply the changes brought by `d216f82` to `master`.
 
+The [tests file](tests/index.test.js) shows the known use-cases supported by `git cherry-pick` but not by `github-cherry-pick`.
 If you have any suggestions for how to support all the situations handled by `git cherry-pick` by only using endpoints of the GitHub REST API, please create an issue or pull request.
 
 ## Troubleshooting
