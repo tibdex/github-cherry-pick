@@ -29,6 +29,7 @@ module.exports = {
     // Flow takes care of the rest, same thing for no-eq-null.
     eqeqeq: ["error", "smart"],
     "linebreak-style": "off",
+    "max-lines-per-function": ["error", 60],
     "multiline-comment-style": ["error", "separate-lines"],
     "no-eq-null": "off",
     "no-magic-numbers": "off",
