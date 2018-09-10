@@ -5,8 +5,6 @@
 
 `github-cherry-pick` cherry-picks several commits on a branch using [the low level Git Data operations provided by the GitHub REST API](https://developer.github.com/v3/git/).
 
-See also [`github-rebase`](https://www.npmjs.com/package/github-rebase) if you want to rebase a pull request on its base branch.
-
 # Usage
 
 ```javascript
@@ -156,7 +154,7 @@ and we want to cherry-pick `317c828` and `4620c9b` on the `master` branch.
     |/
     * 72cc07d A
     ```
-6.  Set `master`'s reference to the same one than `temp` with [PATCH /repos/:owner/:repo/git/refs/:ref](https://developer.github.com/v3/git/refs/#update-a-reference), making sure it's a fast-forward update.
+6.  Set `master`'s reference to the same as `temp` with [PATCH /repos/:owner/:repo/git/refs/:ref](https://developer.github.com/v3/git/refs/#update-a-reference), making sure it's a fast-forward update.
     <!--
     git checkout master
     git merge temp --ff-only
