@@ -35,25 +35,6 @@ cherryPickCommits({
 
 `github-cherry-pick` can run on Node.js and in recent browsers.
 
-### Disclaimer
-
-`github-cherry-pick` currently only supports a subset of what `git cherry-pick` offers.
-
-For instance, starting with this Git graph:
-
-```
-* 9232f06 (HEAD -> master) D
-| * e926f9d (feature) C
-| * d216f82 B
-|/
-* 24dfa35 A
-```
-
-Calling `github-cherry-pick` with `['e926f9d']` to only cherry-pick the last commit of the `feature` branch on `master` would also actually apply the changes brought by `d216f82` to `master`.
-
-The [tests file](tests/index.test.js) shows the known use-cases supported by `git cherry-pick` but not by `github-cherry-pick`.
-If you have any suggestions for how to support all the situations handled by `git cherry-pick` by only using endpoints of the GitHub REST API, please create an issue or pull request.
-
 ## Troubleshooting
 
 `github-cherry-pick` uses [`debug`](https://www.npmjs.com/package/debug) to log helpful information at different steps of the cherry-picking process. To enable these logs, set the `DEBUG` environment variable to `github-cherry-pick`.
@@ -73,107 +54,136 @@ It turns out that's all we need to perform a cherry-pick!
 Let's say we have this Git state:
 
 <!--
-touch A.txt B.txt C.txt D.txt
+touch A.txt B.txt C.txt D.txt E.txt
 git init
 git add A.txt
 git commit --message A
 git checkout -b feature
+git checkout master
 git add B.txt
 git commit --message B
+git checkout feature
 git add C.txt
 git commit --message C
-git checkout master
 git add D.txt
 git commit --message D
+git add E.txt
+git commit --message E
+git checkout master
 -->
 
 ```
-* 9232f06 (HEAD -> master) D
-| * e926f9d (feature) C
-| * d216f82 B
+* 4620c9b (feature) E
+* 317c828 D
+* 7599421 C
+| * 00ad8d7 (HEAD -> master) B
 |/
-* 24dfa35 A
+* 72cc07d A
 ```
 
-and we want to cherry-pick `d216f82` and `e926f9d` on the `master` branch.
+and we want to cherry-pick `317c828` and `4620c9b` on the `master` branch.
 
 `github-cherry-pick` would then take the following steps:
 
-1.  Create a `temp` branch from `feature` with [POST /repos/:owner/:repo/git/refs](https://developer.github.com/v3/git/refs/#create-a-reference).
+1.  Create a `temp` branch from `master` with [POST /repos/:owner/:repo/git/refs](https://developer.github.com/v3/git/refs/#create-a-reference).
     <!--
     git checkout -b temp
     -->
     ```
-    * 9232f06 (HEAD -> temp, master) D
-    | * e926f9d (feature) C
-    | * d216f82 B
+    * 4620c9b (feature) E
+    * 317c828 D
+    * 7599421 C
+    | * 00ad8d7 (HEAD -> temp, master) B
     |/
-    * 24dfa35 A
+    * 72cc07d A
     ```
-2.  Merge `d216f82` on `temp` with [POST /repos/:owner/:repo/merges](https://developer.github.com/v3/repos/merging/#perform-a-merge).
+2.  Create a commit from the tree of `00ad8d7` with `7599421` as parent with [POST /repos/:owner/:repo/git/commits](https://developer.github.com/v3/git/commits/#create-a-commit) and update `temp`'s reference to point to this new commit with [PATCH /repos/:owner/:repo/git/refs/:ref](https://developer.github.com/v3/git/refs/#update-a-reference).
     <!--
-    git merge d216f82
+    git cat-file -p 00ad8d7
+    git commit-tree 7f89cd8 -p 7599421 -m "Use tree of 00ad8d7"
+    git update-ref HEAD 80c410e
     -->
     ```
-    *   5783c4c (HEAD -> temp) Merge commit 'd216f82' into temp
+    * 80c410e (HEAD -> temp) Use tree of 00ad8d7
+    | * 4620c9b (feature) E
+    | * 317c828 D
+    |/
+    * 7599421 C
+    | * 00ad8d7 (master) B
+    |/
+    * 72cc07d A
+    ```
+3.  Merge `317c828` on `temp` with [POST /repos/:owner/:repo/merges](https://developer.github.com/v3/repos/merging/#perform-a-merge).
+    <!--
+    git merge 317c828
+    -->
+    ```
+    *   55a7299 (HEAD -> temp) Merge commit '317c828' into temp
     |\
-    * | 9232f06 (master) D
-    | | * e926f9d (feature) C
+    * | 80c410e Tree of 00ad8d7 with 7599421 as parent
+    | | * 4620c9b (feature) E
     | |/
-    | * d216f82 B
+    | * 317c828 D
     |/
-    * 24dfa35 A
+    * 7599421 C
+    | * 00ad8d7 (master) B
+    |/
+    * 72cc07d A
     ```
-3.  Create another commit from `5783c4c` with `9232f06` as the only parent with [POST /repos/:owner/:repo/git/commits](https://developer.github.com/v3/git/commits/#create-a-commit) and update `temp`'s reference to point to this new commit with [PATCH /repos/:owner/:repo/git/refs/:ref](https://developer.github.com/v3/git/refs/#update-a-reference).
+4.  Create another commit from `55a7299` with `00ad8d7` as the only parent and update `temp`'s reference to point to this new commit.
     <!--
-    git cat-file -p 6cb4aca
-    git commit-tree db5a9e1 -p 1d3fb48 -m B
-    git update-ref HEAD 1616ba2
+    git cat-file -p 55a7299
+    git commit-tree 9b3f8f6 -p 00ad8d7 -m D
+    git update-ref HEAD 3698031
     -->
     ```
-    * 1616ba2 (HEAD -> temp) B
-    * 9232f06 (master) D
-    | * e926f9d (feature) C
-    | * d216f82 B
+    * 3698031 (HEAD -> temp) D
+    * 00ad8d7 (master) B
+    | * 4620c9b (feature) E
+    | * 317c828 D
+    | * 7599421 C
     |/
-    * 24dfa35 A
+    * 72cc07d A
     ```
-4.  Repeat steps 2. and 3. to cherry-pick `e926f9d` on `temp`.
+5.  Repeat steps 2. and 3. to cherry-pick `4620c9b` on `temp`.
     ```
-    * d82c247 (HEAD -> temp) C
-    * 1616ba2 B
-    * 9232f06 (master) D
-    | * e926f9d (feature) C
-    | * d216f82 B
+    * d82c247 (HEAD -> temp) E
+    * 3698031 D
+    * 00ad8d7 (master) B
+    | * 4620c9b (feature) E
+    | * 317c828 D
+    | * 7599421 C
     |/
-    * 24dfa35 A
+    * 72cc07d A
     ```
-5.  Set `master`'s reference to the same one than `temp` with [PATCH /repos/:owner/:repo/git/refs/:ref](https://developer.github.com/v3/git/refs/#update-a-reference), making sure it's a fast-forward update.
+6.  Set `master`'s reference to the same one than `temp` with [PATCH /repos/:owner/:repo/git/refs/:ref](https://developer.github.com/v3/git/refs/#update-a-reference), making sure it's a fast-forward update.
     <!--
-    git checkout feature
+    git checkout master
     git merge temp --ff-only
     -->
     ```
-    * d82c247 (HEAD -> master, temp) C
-    * 1616ba2 B
-    * 9232f06 D
-    | * e926f9d (feature) C
-    | * d216f82 B
+    * d82c247 (HEAD -> master, temp) E
+    * 3698031 D
+    * 00ad8d7 B
+    | * 4620c9b (feature) E
+    | * 317c828 D
+    | * 7599421 C
     |/
-    * 24dfa35 A
+    * 72cc07d A
     ```
-6.  Delete the `temp` branch with [DELETE /repos/:owner/:repo/git/refs/:ref](https://developer.github.com/v3/git/refs/#delete-a-reference) and we're done!
+7.  Delete the `temp` branch with [DELETE /repos/:owner/:repo/git/refs/:ref](https://developer.github.com/v3/git/refs/#delete-a-reference) and we're done!
     <!--
     git branch --delete temp
     -->
     ```
-    * d82c247 (HEAD -> master) C
-    * 1616ba2 B
-    * 9232f06 D
-    | * e926f9d (feature) C
-    | * d216f82 B
+    * d82c247 (HEAD -> master) E
+    * 3698031 D
+    * 00ad8d7 B
+    | * 4620c9b (feature) E
+    | * 317c828 D
+    | * 7599421 C
     |/
-    * 24dfa35 A
+    * 72cc07d A
     ```
 
 ## Atomicity
