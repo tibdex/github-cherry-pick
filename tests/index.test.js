@@ -290,8 +290,8 @@ describe("atomicity", () => {
     test(
       "whole operation aborted",
       async () => {
-        try {
-          await cherryPick({
+        await expect(
+          cherryPick({
             // eslint-disable-next-line no-undefined
             _intercept: getIntercept ? getIntercept(refsDetails) : undefined,
             // Cherry-pick all feature commits except the initial one.
@@ -300,18 +300,15 @@ describe("atomicity", () => {
             octokit,
             owner,
             repo,
-          });
-          throw new Error("The cherry-pick should have failed");
-        } catch (error) {
-          expect(error.message).toMatch(errorRegex);
-          const masterCommits = await fetchReferenceCommits({
-            octokit,
-            owner,
-            ref: refsDetails.master.ref,
-            repo,
-          });
-          expect(masterCommits).toEqual(expectedMasterCommits);
-        }
+          })
+        ).rejects.toThrow(errorRegex);
+        const masterCommits = await fetchReferenceCommits({
+          octokit,
+          owner,
+          ref: refsDetails.master.ref,
+          repo,
+        });
+        expect(masterCommits).toEqual(expectedMasterCommits);
       },
       15000
     );
