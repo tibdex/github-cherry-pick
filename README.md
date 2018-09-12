@@ -35,12 +35,6 @@ cherryPickCommits({
 
 `github-cherry-pick` can run on Node.js and in recent browsers.
 
-## Atomicity
-
-`github-cherry-pick` is atomic.
-It will either successfully cherry-pick all the given commits on the specified branch or let the branch untouched if one commit could not be cherry picked or if the branch reference changed while the cherry-picking was happening.
-There are [tests](tests/index.test.js) for it.
-
 ## Troubleshooting
 
 `github-cherry-pick` uses [`debug`](https://www.npmjs.com/package/debug) to log helpful information at different steps of the cherry-picking process. To enable these logs, set the `DEBUG` environment variable to `github-cherry-pick`.
@@ -191,3 +185,9 @@ and we want to cherry-pick `317c828` and `4620c9b` on the `master` branch.
     |/
     * 72cc07d A
     ```
+
+## Atomicity
+
+`github-cherry-pick` is atomic.
+It will either successfully cherry-pick all the given commits on the specified branch or let the branch untouched if one commit could not be cherry picked or if the branch reference changed while the cherry-picking was happening.
+There are [tests](tests/index.test.js) for it.
