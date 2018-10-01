@@ -7,9 +7,13 @@ import {
 import { createTestContext } from "shared-github-internals/lib/tests/context";
 import {
   createCommitFromLinesAndMessage,
+  createGitRepo,
   createReferences,
+  executeGitCommand,
   fetchReferenceCommits,
   fetchReferenceCommitsFromSha,
+  getReferenceCommitsFromGitRepo,
+  getReferenceShasFromGitRepo,
 } from "shared-github-internals/lib/tests/git";
 
 import cherryPick from "../src";
@@ -45,18 +49,6 @@ describe("nominal behavior", () => {
         ];
 
         return {
-          expectedMasterCommits: [
-            initialCommit,
-            master1stCommit,
-            {
-              lines: [master1st, feature1st],
-              message: feature1st,
-            },
-            {
-              lines: [master1st, feature2nd],
-              message: feature2nd,
-            },
-          ],
           // Cherry-pick all feature commits except the initial one.
           getCommitsToCherryPickShas: featureShas => featureShas.slice(1),
           initialState: {
@@ -93,14 +85,6 @@ describe("nominal behavior", () => {
         ];
 
         return {
-          expectedMasterCommits: [
-            initialCommit,
-            master1stCommit,
-            {
-              lines: [master1st, initial, feature2nd],
-              message: feature2nd,
-            },
-          ],
           // Only cherry-pick the last feature commit.
           getCommitsToCherryPickShas: featureShas => featureShas.slice(-1),
           initialState: {
@@ -123,13 +107,9 @@ describe("nominal behavior", () => {
       },
     ],
   ])("%s", (tmp, getProperties) => {
-    const {
-      expectedMasterCommits,
-      getCommitsToCherryPickShas,
-      initialState,
-    } = getProperties();
+    const { getCommitsToCherryPickShas, initialState } = getProperties();
 
-    let deleteReferences, refsDetails, sha;
+    let deleteReferences, directory, refsDetails, sha;
 
     beforeAll(async () => {
       ({ deleteReferences, refsDetails } = await createReferences({
@@ -144,6 +124,16 @@ describe("nominal behavior", () => {
         octokit,
         owner,
         repo,
+      });
+      directory = await createGitRepo(initialState);
+      const featureShas = await getReferenceShasFromGitRepo({
+        directory,
+        reference: "feature",
+      });
+      await executeGitCommand({
+        args: ["cherry-pick", ...getCommitsToCherryPickShas(featureShas)],
+        directory,
+        reference: "master",
       });
     }, 25000);
 
@@ -160,13 +150,18 @@ describe("nominal behavior", () => {
     });
 
     test("commits on master are the expected ones", async () => {
+      const expectedCommits = await getReferenceCommitsFromGitRepo({
+        directory,
+        reference: "master",
+      });
+      expect({ commits: expectedCommits, initialState }).toMatchSnapshot();
       const actualCommits = await fetchReferenceCommitsFromSha({
         octokit,
         owner,
         repo,
         sha,
       });
-      expect(actualCommits).toEqual(expectedMasterCommits);
+      expect(actualCommits).toEqual(expectedCommits);
     });
   });
 });

@@ -10,7 +10,8 @@ It's the building block of [`github-backport`](https://www.npmjs.com/package/git
 # Usage
 
 ```javascript
-const cherryPickCommits = require("github-cherry-pick");
+import cherryPickCommits from "github-cherry-pick";
+// const {default: cherryPickCommits} = require("github-cherry-pick");
 
 cherryPickCommits({
   // The SHA list of the commits to cherry-pick.

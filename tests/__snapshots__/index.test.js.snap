@@ -1,0 +1,143 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`nominal behavior same line edited multiple times commits on master are the expected ones 1`] = `
+Object {
+  "commits": Array [
+    Object {
+      "lines": Array [
+        "initial",
+        "initial",
+      ],
+      "message": "initial",
+    },
+    Object {
+      "lines": Array [
+        "master 1st",
+        "initial",
+      ],
+      "message": "master 1st",
+    },
+    Object {
+      "lines": Array [
+        "master 1st",
+        "feature 1st",
+      ],
+      "message": "feature 1st",
+    },
+    Object {
+      "lines": Array [
+        "master 1st",
+        "feature 2nd",
+      ],
+      "message": "feature 2nd",
+    },
+  ],
+  "initialState": Object {
+    "initialCommit": Object {
+      "lines": Array [
+        "initial",
+        "initial",
+      ],
+      "message": "initial",
+    },
+    "refsCommits": Object {
+      "feature": Array [
+        Object {
+          "lines": Array [
+            "initial",
+            "feature 1st",
+          ],
+          "message": "feature 1st",
+        },
+        Object {
+          "lines": Array [
+            "initial",
+            "feature 2nd",
+          ],
+          "message": "feature 2nd",
+        },
+      ],
+      "master": Array [
+        Object {
+          "lines": Array [
+            "master 1st",
+            "initial",
+          ],
+          "message": "master 1st",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`nominal behavior skipping commits commits on master are the expected ones 1`] = `
+Object {
+  "commits": Array [
+    Object {
+      "lines": Array [
+        "initial",
+        "initial",
+        "initial",
+      ],
+      "message": "initial",
+    },
+    Object {
+      "lines": Array [
+        "master 1st",
+        "initial",
+        "initial",
+      ],
+      "message": "master 1st",
+    },
+    Object {
+      "lines": Array [
+        "master 1st",
+        "initial",
+        "feature 2nd",
+      ],
+      "message": "feature 2nd",
+    },
+  ],
+  "initialState": Object {
+    "initialCommit": Object {
+      "lines": Array [
+        "initial",
+        "initial",
+        "initial",
+      ],
+      "message": "initial",
+    },
+    "refsCommits": Object {
+      "feature": Array [
+        Object {
+          "lines": Array [
+            "initial",
+            "feature 1st",
+            "initial",
+          ],
+          "message": "feature 1st",
+        },
+        Object {
+          "lines": Array [
+            "initial",
+            "initial",
+            "feature 2nd",
+          ],
+          "message": "feature 2nd",
+        },
+      ],
+      "master": Array [
+        Object {
+          "lines": Array [
+            "master 1st",
+            "initial",
+            "initial",
+          ],
+          "message": "master 1st",
+        },
+      ],
+    },
+  },
+}
+`;
