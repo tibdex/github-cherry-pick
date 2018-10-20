@@ -1,18 +1,19 @@
-// @flow strict
-
-import type { Github } from "@octokit/rest";
+import * as Octokit from "@octokit/rest";
+import * as createDebug from "debug";
 import {
-  type Reference,
-  type RepoName,
-  type RepoOwner,
-  type Sha,
+  CommitAuthor,
+  CommitCommitter,
+  CommitMessage,
   fetchReferenceSha,
+  Reference,
+  RepoName,
+  RepoOwner,
+  Sha,
   updateReference,
   withTemporaryReference,
 } from "shared-github-internals/lib/git";
-import createDebug from "debug";
 
-import { name as packageName } from "../package";
+const debug = createDebug("github-cherry-pick");
 
 const createCommit = async ({
   author,
@@ -23,6 +24,15 @@ const createCommit = async ({
   parent,
   repo,
   tree,
+}: {
+  author: CommitAuthor;
+  committer: CommitCommitter;
+  message: CommitMessage;
+  octokit: Octokit;
+  owner: RepoOwner;
+  parent: Sha;
+  repo: RepoName;
+  tree: Sha;
 }) => {
   const {
     data: { sha },
@@ -40,7 +50,19 @@ const createCommit = async ({
   return sha;
 };
 
-const merge = async ({ base, commit, octokit, owner, repo }) => {
+const merge = async ({
+  base,
+  commit,
+  octokit,
+  owner,
+  repo,
+}: {
+  base: Reference;
+  commit: Sha;
+  octokit: Octokit;
+  owner: RepoOwner;
+  repo: RepoName;
+}) => {
   const {
     data: {
       commit: {
@@ -56,7 +78,17 @@ const merge = async ({ base, commit, octokit, owner, repo }) => {
   return tree;
 };
 
-const retrieveCommitDetails = async ({ commit, octokit, owner, repo }) => {
+const retrieveCommitDetails = async ({
+  commit,
+  octokit,
+  owner,
+  repo,
+}: {
+  commit: Sha;
+  octokit: Octokit;
+  owner: RepoOwner;
+  repo: RepoName;
+}) => {
   const {
     data: {
       author,
@@ -79,6 +111,18 @@ const createSiblingCommit = async ({
   owner,
   parent,
   repo,
+}: {
+  commit: Sha;
+  head: {
+    author: CommitAuthor;
+    committer: CommitCommitter;
+    ref: Reference;
+    tree: Sha;
+  };
+  octokit: Octokit;
+  owner: RepoOwner;
+  parent: Sha;
+  repo: RepoName;
 }) => {
   const sha = await createCommit({
     author,
@@ -102,11 +146,16 @@ const createSiblingCommit = async ({
 
 const cherryPickCommit = async ({
   commit,
-  debug,
   head: { ref, sha, tree },
   octokit,
   owner,
   repo,
+}: {
+  commit: Sha;
+  head: { ref: Reference; sha: Sha; tree: Sha };
+  octokit: Octokit;
+  owner: RepoOwner;
+  repo: RepoName;
 }) => {
   const { author, committer, message, parent } = await retrieveCommitDetails({
     commit,
@@ -161,12 +210,18 @@ const cherryPickCommit = async ({
 
 const cherryPickCommitsOnReference = async ({
   commits,
-  debug,
   initialHeadSha,
   octokit,
   owner,
   ref,
   repo,
+}: {
+  commits: Sha[];
+  initialHeadSha: Sha;
+  octokit: Octokit;
+  owner: RepoOwner;
+  ref: Reference;
+  repo: RepoName;
 }) => {
   const {
     data: {
@@ -184,7 +239,6 @@ const cherryPickCommitsOnReference = async ({
       debug("cherry-picking", { commit, ref, sha });
       return cherryPickCommit({
         commit,
-        debug,
         head: { ref, sha, tree },
         octokit,
         owner,
@@ -194,7 +248,7 @@ const cherryPickCommitsOnReference = async ({
     Promise.resolve({
       sha: initialHeadSha,
       tree: initialHeadTree,
-    })
+    }),
   );
 
   return newHeadSha;
@@ -210,14 +264,13 @@ const cherryPickCommits = async ({
   owner,
   repo,
 }: {
-  _intercept?: ({ initialHeadSha: Sha }) => Promise<void>,
-  commits: Array<Sha>,
-  head: Reference,
-  octokit: Github,
-  owner: RepoOwner,
-  repo: RepoName,
+  _intercept?: ({ initialHeadSha }: { initialHeadSha: Sha }) => Promise<void>;
+  commits: Sha[];
+  head: Reference;
+  octokit: Octokit;
+  owner: RepoOwner;
+  repo: RepoName;
 }): Promise<Sha> => {
-  const debug = createDebug(packageName);
   debug("starting", { commits, head, owner, repo });
   const initialHeadSha = await fetchReferenceSha({
     octokit,
@@ -231,7 +284,6 @@ const cherryPickCommits = async ({
       debug({ temporaryRef });
       const newSha = await cherryPickCommitsOnReference({
         commits,
-        debug,
         initialHeadSha,
         octokit,
         owner,

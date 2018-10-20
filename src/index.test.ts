@@ -1,22 +1,27 @@
-// @flow strict
-
+import * as Octokit from "@octokit/rest";
 import {
   fetchReferenceSha,
+  RepoName,
+  RepoOwner,
+  Sha,
   updateReference,
 } from "shared-github-internals/lib/git";
 import { createTestContext } from "shared-github-internals/lib/tests/context";
 import {
+  CommandDirectory,
   createCommitFromLinesAndMessage,
   createGitRepo,
   createReferences,
+  DeleteReferences,
   executeGitCommand,
   fetchReferenceCommits,
   fetchReferenceCommitsFromSha,
   getReferenceCommitsFromGitRepo,
   getReferenceShasFromGitRepo,
+  RefsDetails,
 } from "shared-github-internals/lib/tests/git";
 
-import cherryPick from "../src";
+import cherryPick from ".";
 
 const [initial, feature1st, feature2nd, master1st, master2nd] = [
   "initial",
@@ -26,7 +31,9 @@ const [initial, feature1st, feature2nd, master1st, master2nd] = [
   "master 2nd",
 ];
 
-let octokit, owner, repo;
+let octokit: Octokit;
+let owner: RepoName;
+let repo: RepoOwner;
 
 beforeAll(() => {
   ({ octokit, owner, repo } = createTestContext());
@@ -50,7 +57,8 @@ describe("nominal behavior", () => {
 
         return {
           // Cherry-pick all feature commits except the initial one.
-          getCommitsToCherryPickShas: featureShas => featureShas.slice(1),
+          getCommitsToCherryPickShas: (featureShas: Sha[]) =>
+            featureShas.slice(1),
           initialState: {
             initialCommit,
             refsCommits: {
@@ -86,7 +94,8 @@ describe("nominal behavior", () => {
 
         return {
           // Only cherry-pick the last feature commit.
-          getCommitsToCherryPickShas: featureShas => featureShas.slice(-1),
+          getCommitsToCherryPickShas: (featureShas: Sha[]) =>
+            featureShas.slice(-1),
           initialState: {
             initialCommit,
             refsCommits: {
@@ -109,7 +118,10 @@ describe("nominal behavior", () => {
   ])("%s", (tmp, getProperties) => {
     const { getCommitsToCherryPickShas, initialState } = getProperties();
 
-    let deleteReferences, directory, refsDetails, sha;
+    let deleteReferences: DeleteReferences;
+    let directory: CommandDirectory;
+    let refsDetails: RefsDetails;
+    let sha: Sha;
 
     beforeAll(async () => {
       ({ deleteReferences, refsDetails } = await createReferences({
@@ -229,7 +241,11 @@ describe("atomicity", () => {
             master1stCommit,
             master2ndCommit,
           ],
-          getIntercept: refsDetails => async ({ initialHeadSha }) => {
+          getIntercept: (refsDetails: RefsDetails) => async ({
+            initialHeadSha,
+          }: {
+            initialHeadSha: Sha;
+          }) => {
             const newCommit = await createCommitFromLinesAndMessage({
               commit: master2ndCommit,
               octokit,
@@ -269,7 +285,8 @@ describe("atomicity", () => {
       initialState,
     } = getProperties();
 
-    let deleteReferences, refsDetails;
+    let deleteReferences: DeleteReferences;
+    let refsDetails: RefsDetails;
 
     beforeAll(async () => {
       ({ deleteReferences, refsDetails } = await createReferences({
@@ -295,7 +312,7 @@ describe("atomicity", () => {
             octokit,
             owner,
             repo,
-          })
+          }),
         ).rejects.toThrow(errorRegex);
         const masterCommits = await fetchReferenceCommits({
           octokit,
@@ -305,7 +322,7 @@ describe("atomicity", () => {
         });
         expect(masterCommits).toEqual(expectedMasterCommits);
       },
-      15000
+      15000,
     );
   });
 });
