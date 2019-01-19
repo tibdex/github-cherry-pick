@@ -1,27 +1,27 @@
 import * as Octokit from "@octokit/rest";
 import {
-  fetchReferenceSha,
+  fetchRefSha,
   RepoName,
   RepoOwner,
   Sha,
-  updateReference,
+  updateRef,
 } from "shared-github-internals/lib/git";
 import { createTestContext } from "shared-github-internals/lib/tests/context";
 import {
   CommandDirectory,
   createCommitFromLinesAndMessage,
   createGitRepo,
-  createReferences,
-  DeleteReferences,
+  createRefs,
+  DeleteRefs,
   executeGitCommand,
-  fetchReferenceCommits,
-  fetchReferenceCommitsFromSha,
-  getReferenceCommitsFromGitRepo,
-  getReferenceShasFromGitRepo,
+  fetchRefCommits,
+  fetchRefCommitsFromSha,
+  getRefCommitsFromGitRepo,
+  getRefShasFromGitRepo,
   RefsDetails,
 } from "shared-github-internals/lib/tests/git";
 
-import cherryPick from ".";
+import { cherryPickCommits } from ".";
 
 const [initial, feature1st, feature2nd, master1st, master2nd] = [
   "initial",
@@ -118,19 +118,19 @@ describe("nominal behavior", () => {
   ])("%s", (tmp, getProperties) => {
     const { getCommitsToCherryPickShas, initialState } = getProperties();
 
-    let deleteReferences: DeleteReferences;
+    let deleteRefs: DeleteRefs;
     let directory: CommandDirectory;
     let refsDetails: RefsDetails;
     let sha: Sha;
 
     beforeAll(async () => {
-      ({ deleteReferences, refsDetails } = await createReferences({
+      ({ deleteRefs, refsDetails } = await createRefs({
         octokit,
         owner,
         repo,
         state: initialState,
       }));
-      sha = await cherryPick({
+      sha = await cherryPickCommits({
         commits: getCommitsToCherryPickShas(refsDetails.feature.shas),
         head: refsDetails.master.ref,
         octokit,
@@ -138,21 +138,21 @@ describe("nominal behavior", () => {
         repo,
       });
       directory = await createGitRepo(initialState);
-      const featureShas = await getReferenceShasFromGitRepo({
+      const featureShas = await getRefShasFromGitRepo({
         directory,
-        reference: "feature",
+        ref: "feature",
       });
       await executeGitCommand({
         args: ["cherry-pick", ...getCommitsToCherryPickShas(featureShas)],
         directory,
-        reference: "master",
+        ref: "master",
       });
     }, 25000);
 
-    afterAll(() => deleteReferences());
+    afterAll(() => deleteRefs());
 
     test("returned sha is the actual master ref sha", async () => {
-      const actualRefSha = await fetchReferenceSha({
+      const actualRefSha = await fetchRefSha({
         octokit,
         owner,
         ref: refsDetails.master.ref,
@@ -162,12 +162,12 @@ describe("nominal behavior", () => {
     });
 
     test("commits on master are the expected ones", async () => {
-      const expectedCommits = await getReferenceCommitsFromGitRepo({
+      const expectedCommits = await getRefCommitsFromGitRepo({
         directory,
-        reference: "master",
+        ref: "master",
       });
       expect({ commits: expectedCommits, initialState }).toMatchSnapshot();
-      const actualCommits = await fetchReferenceCommitsFromSha({
+      const actualCommits = await fetchRefCommitsFromSha({
         octokit,
         owner,
         repo,
@@ -217,7 +217,7 @@ describe("atomicity", () => {
       },
     ],
     [
-      "the head reference changed",
+      "the head ref changed",
       () => {
         const [initialCommit, master1stCommit, master2ndCommit] = [
           {
@@ -253,7 +253,7 @@ describe("atomicity", () => {
               parent: initialHeadSha,
               repo,
             });
-            await updateReference({
+            await updateRef({
               force: false,
               octokit,
               owner,
@@ -285,11 +285,11 @@ describe("atomicity", () => {
       initialState,
     } = getProperties();
 
-    let deleteReferences: DeleteReferences;
+    let deleteRefs: DeleteRefs;
     let refsDetails: RefsDetails;
 
     beforeAll(async () => {
-      ({ deleteReferences, refsDetails } = await createReferences({
+      ({ deleteRefs, refsDetails } = await createRefs({
         octokit,
         owner,
         repo,
@@ -297,32 +297,28 @@ describe("atomicity", () => {
       }));
     }, 15000);
 
-    afterAll(() => deleteReferences());
+    afterAll(() => deleteRefs());
 
-    test(
-      "whole operation aborted",
-      async () => {
-        await expect(
-          cherryPick({
-            // eslint-disable-next-line no-undefined
-            _intercept: getIntercept ? getIntercept(refsDetails) : undefined,
-            // Cherry-pick all feature commits except the initial one.
-            commits: refsDetails.feature.shas.slice(1),
-            head: refsDetails.master.ref,
-            octokit,
-            owner,
-            repo,
-          }),
-        ).rejects.toThrow(errorRegex);
-        const masterCommits = await fetchReferenceCommits({
+    test("whole operation aborted", async () => {
+      await expect(
+        cherryPickCommits({
+          // eslint-disable-next-line no-undefined
+          _intercept: getIntercept ? getIntercept(refsDetails) : undefined,
+          // Cherry-pick all feature commits except the initial one.
+          commits: refsDetails.feature.shas.slice(1),
+          head: refsDetails.master.ref,
           octokit,
           owner,
-          ref: refsDetails.master.ref,
           repo,
-        });
-        expect(masterCommits).toEqual(expectedMasterCommits);
-      },
-      15000,
-    );
+        }),
+      ).rejects.toThrow(errorRegex);
+      const masterCommits = await fetchRefCommits({
+        octokit,
+        owner,
+        ref: refsDetails.master.ref,
+        repo,
+      });
+      expect(masterCommits).toEqual(expectedMasterCommits);
+    }, 15000);
   });
 });
