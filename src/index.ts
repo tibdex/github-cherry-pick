@@ -4,13 +4,13 @@ import {
   CommitAuthor,
   CommitCommitter,
   CommitMessage,
-  fetchReferenceSha,
-  Reference,
+  fetchRefSha,
+  Ref,
   RepoName,
   RepoOwner,
   Sha,
-  updateReference,
-  withTemporaryReference,
+  updateRef,
+  withTemporaryRef,
 } from "shared-github-internals/lib/git";
 
 const debug = createDebug("github-cherry-pick");
@@ -36,7 +36,7 @@ const createCommit = async ({
 }) => {
   const {
     data: { sha },
-  } = await octokit.gitdata.createCommit({
+  } = await octokit.git.createCommit({
     author,
     committer,
     message,
@@ -57,7 +57,7 @@ const merge = async ({
   owner,
   repo,
 }: {
-  base: Reference;
+  base: Ref;
   commit: Sha;
   octokit: Octokit;
   owner: RepoOwner;
@@ -96,7 +96,7 @@ const retrieveCommitDetails = async ({
       message,
       parents: [{ sha: parent }],
     },
-  } = await octokit.gitdata.getCommit({
+  } = await octokit.git.getCommit({
     commit_sha: commit,
     owner,
     repo,
@@ -116,7 +116,7 @@ const createSiblingCommit = async ({
   head: {
     author: CommitAuthor;
     committer: CommitCommitter;
-    ref: Reference;
+    ref: Ref;
     tree: Sha;
   };
   octokit: Octokit;
@@ -134,7 +134,7 @@ const createSiblingCommit = async ({
     repo,
     tree,
   });
-  await updateReference({
+  await updateRef({
     force: true,
     octokit,
     owner,
@@ -152,7 +152,7 @@ const cherryPickCommit = async ({
   repo,
 }: {
   commit: Sha;
-  head: { ref: Reference; sha: Sha; tree: Sha };
+  head: { ref: Ref; sha: Sha; tree: Sha };
   octokit: Octokit;
   owner: RepoOwner;
   repo: RepoName;
@@ -191,8 +191,8 @@ const cherryPickCommit = async ({
     repo,
     tree: newHeadTree,
   });
-  debug("updating reference", newHeadSha);
-  await updateReference({
+  debug("updating ref", newHeadSha);
+  await updateRef({
     // Overwrite the merge commit and its parent on the branch by a single commit.
     // The result will be equivalent to what would have happened with a fast-forward merge.
     force: true,
@@ -208,7 +208,7 @@ const cherryPickCommit = async ({
   };
 };
 
-const cherryPickCommitsOnReference = async ({
+const cherryPickCommitsOnRef = async ({
   commits,
   initialHeadSha,
   octokit,
@@ -220,14 +220,14 @@ const cherryPickCommitsOnReference = async ({
   initialHeadSha: Sha;
   octokit: Octokit;
   owner: RepoOwner;
-  ref: Reference;
+  ref: Ref;
   repo: RepoName;
 }) => {
   const {
     data: {
       tree: { sha: initialHeadTree },
     },
-  } = await octokit.gitdata.getCommit({
+  } = await octokit.git.getCommit({
     commit_sha: initialHeadSha,
     owner,
     repo,
@@ -266,23 +266,23 @@ const cherryPickCommits = async ({
 }: {
   _intercept?: ({ initialHeadSha }: { initialHeadSha: Sha }) => Promise<void>;
   commits: Sha[];
-  head: Reference;
+  head: Ref;
   octokit: Octokit;
   owner: RepoOwner;
   repo: RepoName;
 }): Promise<Sha> => {
   debug("starting", { commits, head, owner, repo });
-  const initialHeadSha = await fetchReferenceSha({
+  const initialHeadSha = await fetchRefSha({
     octokit,
     owner,
     ref: head,
     repo,
   });
   await _intercept({ initialHeadSha });
-  return withTemporaryReference({
+  return withTemporaryRef({
     action: async temporaryRef => {
       debug({ temporaryRef });
-      const newSha = await cherryPickCommitsOnReference({
+      const newSha = await cherryPickCommitsOnRef({
         commits,
         initialHeadSha,
         octokit,
@@ -290,8 +290,8 @@ const cherryPickCommits = async ({
         ref: temporaryRef,
         repo,
       });
-      debug("updating reference with new SHA", newSha);
-      await updateReference({
+      debug("updating ref with new SHA", newSha);
+      await updateRef({
         // Make sure it's a fast-forward update.
         force: false,
         octokit,
@@ -300,7 +300,7 @@ const cherryPickCommits = async ({
         repo,
         sha: newSha,
       });
-      debug("reference updated");
+      debug("ref updated");
       return newSha;
     },
     octokit,
@@ -311,4 +311,4 @@ const cherryPickCommits = async ({
   });
 };
 
-export default cherryPickCommits;
+export { cherryPickCommits };
