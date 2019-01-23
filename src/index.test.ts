@@ -195,7 +195,7 @@ describe("atomicity", () => {
         ];
 
         return {
-          errorRegex: /Merge conflict/u,
+          errorRegex: /Merge conflict/,
           expectedMasterCommits: [initialCommit, master1stCommit],
           initialState: {
             initialCommit,
@@ -235,7 +235,7 @@ describe("atomicity", () => {
         ];
 
         return {
-          errorRegex: /Update is not a fast forward/u,
+          errorRegex: /Update is not a fast forward/,
           expectedMasterCommits: [
             initialCommit,
             master1stCommit,
@@ -277,14 +277,59 @@ describe("atomicity", () => {
         };
       },
     ],
+    [
+      "merge commits",
+      () => {
+        const [initialCommit, feature1stCommit, feature2ndCommit] = [
+          {
+            lines: [initial, initial],
+            message: initial,
+          },
+          {
+            lines: [feature1st, initial],
+            message: feature1st,
+          },
+          {
+            lines: [initial, feature2nd],
+            message: feature2nd,
+          },
+        ];
+
+        return {
+          async beforeTest(refsDetails: RefsDetails) {
+            const {
+              data: { sha: mergeCommit },
+            } = await octokit.repos.merge({
+              base: refsDetails.feature.ref,
+              head: refsDetails.other.ref,
+              owner,
+              repo,
+            });
+            return [mergeCommit];
+          },
+          errorRegex: /Commit .+ has 2 parents./,
+          expectedMasterCommits: [initialCommit],
+          initialState: {
+            initialCommit,
+            refsCommits: {
+              feature: [feature1stCommit],
+              master: [],
+              other: [feature2ndCommit],
+            },
+          },
+        };
+      },
+    ],
   ])("%s", (tmp, getProperties) => {
     const {
+      beforeTest,
       errorRegex,
       expectedMasterCommits,
       getIntercept,
       initialState,
     } = getProperties();
 
+    let commits: Sha[];
     let deleteRefs: DeleteRefs;
     let refsDetails: RefsDetails;
 
@@ -295,6 +340,10 @@ describe("atomicity", () => {
         repo,
         state: initialState,
       }));
+      commits = await (beforeTest
+        ? beforeTest(refsDetails)
+        : // By default, cherry-pick all feature commits except the initial one.
+          Promise.resolve(refsDetails.feature.shas.slice(1)));
     }, 15000);
 
     afterAll(() => deleteRefs());
@@ -302,10 +351,8 @@ describe("atomicity", () => {
     test("whole operation aborted", async () => {
       await expect(
         cherryPickCommits({
-          // eslint-disable-next-line no-undefined
           _intercept: getIntercept ? getIntercept(refsDetails) : undefined,
-          // Cherry-pick all feature commits except the initial one.
-          commits: refsDetails.feature.shas.slice(1),
+          commits,
           head: refsDetails.master.ref,
           octokit,
           owner,

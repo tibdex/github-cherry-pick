@@ -90,18 +90,19 @@ const retrieveCommitDetails = async ({
   repo: RepoName;
 }) => {
   const {
-    data: {
-      author,
-      committer,
-      message,
-      parents: [{ sha: parent }],
-    },
+    data: { author, committer, message, parents },
   } = await octokit.git.getCommit({
     commit_sha: commit,
     owner,
     repo,
   });
-  return { author, committer, message, parent };
+  if (parents.length > 1) {
+    throw new Error(
+      `Commit ${commit} has ${parents.length} parents.` +
+        ` github-cherry-pick is designed for the rebase workflow and doesn't support merge commits.`,
+    );
+  }
+  return { author, committer, message, parent: parents[0].sha };
 };
 
 const createSiblingCommit = async ({
