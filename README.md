@@ -1,5 +1,4 @@
-[![npm version](https://img.shields.io/npm/v/github-cherry-pick.svg)](https://npmjs.org/package/github-cherry-pick)
-[![build status](https://img.shields.io/circleci/project/github/tibdex/github-cherry-pick.svg)](https://circleci.com/gh/tibdex/github-cherry-pick)
+[![npm version](https://img.shields.io/npm/v/github-cherry-pick.svg)](https://npmjs.org/package/github-cherry-pick) [![build status](https://img.shields.io/circleci/project/github/tibdex/github-cherry-pick.svg)](https://circleci.com/gh/tibdex/github-cherry-pick)
 
 # Goal
 
@@ -16,6 +15,7 @@ const example = async () => {
   const newHeadSha = await cherryPickCommits({
     // The SHA list of the commits to cherry-pick.
     // The commits will be cherry-picked in the order they appear in the array.
+    // Merge commits are not supported.
     // See https://git-scm.com/docs/git-cherry-pick for more details.
     commits: [
       "8b10a7808f06970232dc1b45a77b47d63641c4f1",
@@ -37,7 +37,8 @@ const example = async () => {
 
 ## Troubleshooting
 
-`github-cherry-pick` uses [`debug`](https://www.npmjs.com/package/debug) to log helpful information at different steps of the cherry-picking process. To enable these logs, set the `DEBUG` environment variable to `github-cherry-pick`.
+`github-cherry-pick` uses [`debug`](https://www.npmjs.com/package/debug) to log helpful information at different steps of the cherry-picking process.
+To enable these logs, set the `DEBUG` environment variable to `github-cherry-pick`.
 
 # How it Works
 
