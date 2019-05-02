@@ -20,7 +20,6 @@ import {
   getRefShasFromGitRepo,
   RefsDetails,
 } from "shared-github-internals/lib/tests/git";
-
 import { cherryPickCommits } from ".";
 
 const [initial, feature1st, feature2nd, master1st, master2nd] = [
@@ -115,7 +114,7 @@ describe("nominal behavior", () => {
         };
       },
     ],
-  ])("%s", (tmp, getProperties) => {
+  ])("%s", (tmp, getProperties: any) => {
     const { getCommitsToCherryPickShas, initialState } = getProperties();
 
     let deleteRefs: DeleteRefs;
@@ -320,7 +319,7 @@ describe("atomicity", () => {
         };
       },
     ],
-  ])("%s", (tmp, getProperties) => {
+  ])("%s", (tmp, getProperties: any) => {
     const {
       beforeTest,
       errorRegex,
