@@ -5,7 +5,7 @@
     "@types/debug": "^4.1.4",
     "@types/node": "^11.13.8",
     "debug": "^4.1.1",
-    "shared-github-internals": "^1.1.0"
+    "shared-github-internals": "^1.1.1"
   },
   "description": "Cherry-pick several commits on a branch using the low level Git Data operations provided by the GitHub REST API",
   "devDependencies": {
@@ -42,5 +42,5 @@
     "test": "jest",
     "tslint": "tslint --format stylish --project ."
   },
-  "version": "1.0.1"
+  "version": "1.1.0"
 }
