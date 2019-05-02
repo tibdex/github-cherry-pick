@@ -3270,10 +3270,10 @@ set-value@^2.0.0:
     is-plain-object "^2.0.3"
     split-string "^3.0.1"
 
-shared-github-internals@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/shared-github-internals/-/shared-github-internals-1.1.0.tgz#58ca1730d1fd237ae2865b93bf0d2380abbd3c91"
-  integrity sha512-f6z9RaSLUzC28AlfOcTYhKmyHhwab9NRrtkI2pvIU04+bcSXGXj0SaDrlV9jlfWEtqDjzZnnHpsiBHDEGw6BsA==
+shared-github-internals@^1.1.1:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/shared-github-internals/-/shared-github-internals-1.1.1.tgz#d4a01b77c33ac3b585d96fb58a9c9270c73bbf61"
+  integrity sha512-TDjssilFGeOLHn9oQ1kG+8dsZLK+GovulbzZ69cwAn4eL6CGg1yqpXr9uWEUHBW1zQPGLrpSeBvjozfWwhom6g==
   dependencies:
     "@octokit/rest" "^16.25.0"
     "@types/execa" "^0.9.0"

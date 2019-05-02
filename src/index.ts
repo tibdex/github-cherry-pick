@@ -15,6 +15,14 @@ import {
 
 const debug = createDebug("github-cherry-pick");
 
+// See https://github.com/tibdex/github-rebase/issues/13
+const getCommitMessageToSkipCI = (title: string) =>
+  `${title} [skip ci]
+
+
+skip-checks: true
+`;
+
 const createCommit = async ({
   author,
   committer,
@@ -71,6 +79,7 @@ const merge = async ({
     },
   } = await octokit.repos.merge({
     base,
+    commit_message: getCommitMessageToSkipCI(`Merge ${commit} into ${base}`),
     head: commit,
     owner,
     repo,
@@ -128,7 +137,7 @@ const createSiblingCommit = async ({
   const sha = await createCommit({
     author,
     committer,
-    message: `Sibling of ${commit}`,
+    message: getCommitMessageToSkipCI(`Sibling of ${commit}`),
     octokit,
     owner,
     parent,
