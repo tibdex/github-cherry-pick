@@ -191,4 +191,4 @@ and we want to cherry-pick `317c828` and `4620c9b` on the `master` branch.
 
 `github-cherry-pick` is atomic.
 It will either successfully cherry-pick all the given commits on the specified branch or let the branch untouched if one commit could not be cherry picked or if the branch reference changed while the cherry-picking was happening.
-There are [tests](tests/index.test.js) for it.
+There are [tests](src/index.test.ts) for it.
