@@ -6,6 +6,12 @@
 
 It's the building block of [`github-backport`](https://www.npmjs.com/package/github-backport) and [`github-rebase`](https://www.npmjs.com/package/github-rebase).
 
+# Maintenance update
+
+This library was developed to make [Autorebase](https://github.com/tibdex/autorebase) possible but focus has shifted to the development of its successor: [Autosquash](https://github.com/marketplace/actions/autosquash).
+
+This project will thus stop receiving updates.
+
 # Usage
 
 ```javascript
